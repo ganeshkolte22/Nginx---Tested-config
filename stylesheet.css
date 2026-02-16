@@ -1,0 +1,107 @@
+##Place thsi file inside //usr/share/nginx/html
+
+/* ===== Global Reset ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    background-color: #f3f4f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #1f2937;
+}
+
+/* ===== Main Container ===== */
+.maintenance-wrapper {
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.maintenance-card {
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    padding: 40px 30px;
+    text-align: center;
+}
+
+/* ===== Logo ===== */
+.logo img {
+    width: 180px;
+    margin-bottom: 30px;
+}
+
+/* ===== Headline ===== */
+h1 {
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #111827;
+}
+
+/* ===== Description ===== */
+.message {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #4b5563;
+    margin-bottom: 25px;
+}
+
+/* ===== Info Box ===== */
+.info-box {
+    background-color: #eef2ff;
+    padding: 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    margin-bottom: 25px;
+}
+
+/* ===== Button ===== */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #1c3fca;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    background-color: #162ea5;
+}
+
+/* ===== Footer ===== */
+.footer {
+    margin-top: 30px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .maintenance-card {
+        padding: 25px 15px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    .message {
+        font-size: 14px;
+    }
+}
