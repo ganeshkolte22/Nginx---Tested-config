@@ -1,0 +1,122 @@
+# ===== Maintenance IP Control =====
+# 1 = show maintenance
+# 0 = show application
+
+##adjust the $variable as per the env $http_x_forwarded_for
+map $remote_addr $maintenance_mode {
+    default         0;              # normal users see app
+    19.76.82.40     1;              # test IP
+}
+
+upstream backend_opneshift {
+    zone backend_opneshift 64k;
+    server uat.ltm.publicvm.com;   # Backend Application FQDN (HTTP)
+    keepalive 32;
+}
+log_format proto_logs '$remote_addr - $host [$time_local] '
+                      '"$request" $status $body_bytes_sent '
+                      '"$scheme" "$http_x_forwarded_proto" '
+                      '"$http_referer" "$http_user_agent"';
+# ===============================
+# HTTP Server (Port 80)
+# Redirect all traffic to HTTPS
+# ===============================
+server {
+    listen 80;
+    server_name dg.ltm.publicvm.com;
+
+    return 301 https://$host$request_uri;
+}
+server {
+    root /usr/share/nginx/html/;
+    listen 443 ssl;
+    http2 on;
+    server_name dg.ltm.publicvm.com;
+    resolver 127.0.0.53 valid=30s;
+    resolver_timeout 5s;
+    ssl_certificate     /etc/nginx/ssl/dg.ltm.publicvm.com.crt;
+    ssl_certificate_key /etc/nginx/ssl/dg.ltm.publicvm.com.key;
+
+    # Recommended TLS settings (minimum baseline)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+    ssl_session_timeout 10m;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_tickets off;
+    # ---- HSTS CONFIGURATION ----
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    # Additional Security Headers
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    access_log /var/log/nginx/access.log proto_logs;
+
+    # ===== MAINTENANCE TOGGLE =====
+    # 1 = enabled
+    # 0 = disabled
+    #set $maintenance 1;
+    error_page 503 /maintenance.html;
+
+    # ===== Serve Maintenance Page =====
+    location = /maintenance.html {}
+
+    # ===== Serve Static Assets (logo etc.) =====
+    location ~* \.(png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf)$ {
+            try_files $uri =404;
+    }
+
+    location / {
+        if ($maintenance_mode) {
+        return 503;
+    }
+    #limit_req zone=api_rate_limit burst=20 nodelay;
+        proxy_pass http://backend_opneshift;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Host uat.ltm.publicvm.com;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /enrolment/ {
+
+        if ($maintenance_mode) {
+            return 503;
+            }
+        #limit_req zone=api_rate_limit; #burst=20 nodelay;
+
+
+        proxy_pass http://backend.example.com/;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Host uat.ltm.publicvm.com;
+       proxy_set_header X-Real-IP $remote_addr;
+       add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Debug $server_name always;
+    }
+
+    location ~* \.(js|woff|woff2|css|gif|jpg|jpeg|svg|png|ico|ttf|webp|json|html|eot|pdf)$ {
+        if ($maintenance_mode) {return 503;}
+        proxy_pass http://backend.example.com;
+        add_header Pragma "no-cache" always;
+        add_header "Access-Control-Allow-Origin" "https://dg.ltm.publicvm.com";
+        add_header Access-Control-Allow-Origin "https://dg.ltm.publicvm.com";
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload";
+        add_header X-Content-Type-Options "nosniff";
+        proxy_hide_header X-Frame-Options;
+        add_header X-Frame-Options "DENY";
+        add_header set_cookie_flag secure;
+       }
+
+        #location /api {
+        #api write=on;
+        #       allow 127.0.0.1;
+        #deny all;
+        #}
+
+    location = /dashboard.html {
+        root /usr/share/nginx/html;
+}
+}
